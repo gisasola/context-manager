@@ -1,0 +1,10 @@
+- Refactor the code to separate the UI from the logic.
+- Add unit tests.
+- Improve error handling.
+- Add a feature to drag and drop files to add them to the context.
+- Add the possibility to open folders and not only files.
+- Find a way to get the open apps from the user and add them automatically.
+- Find a way to get the current open tabs from the browser and add them automatically.
+- Add a feature to import contexts from other formats.
+- Analyse usability and find improvements.
+- Improve the UI design.
