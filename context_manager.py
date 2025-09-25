@@ -1,9 +1,10 @@
 import os
+import sys
 import subprocess
 import json
 import tkinter as tk
 from tkinter import filedialog, messagebox
-
+import webbrowser
 
 DEFAULT_CONTEXTS_DIR = os.path.expanduser("~/Documents/Contexts")
 CONFIG_PATH = os.path.expanduser("~/.simple_context_manager_config.json")
@@ -13,21 +14,31 @@ class AddDialog(tk.Toplevel):
     def __init__(self, parent, callback):
         super().__init__(parent)
         self.grab_set()
-        self.title("Add URL or File Path")
-        self.geometry("530x115")
+        self.title("Add URL, File, or Folder Path")
+        self.geometry("820x130")
         self.resizable(False, False)
         self.callback = callback
-        tk.Label(self, text="Enter URL or file path:").pack(
+
+        tk.Label(self, text="Enter URL, file path, or folder path:").pack(
             anchor="w", padx=10, pady=(10, 3)
         )
+
         entry_frame = tk.Frame(self)
         entry_frame.pack(fill=tk.X, padx=10)
-        self.entry = tk.Entry(entry_frame, width=40)
+
+        self.entry = tk.Entry(entry_frame, width=60)
         self.entry.pack(side=tk.LEFT, fill=tk.X, expand=True)
-        tk.Button(entry_frame, text="Browse", command=self.select_file).pack(
+
+        # Browse buttons for file and folder
+        tk.Button(entry_frame, text="Browse File", command=self.select_file).pack(
             side=tk.LEFT, padx=6
         )
+        tk.Button(entry_frame, text="Browse Folder", command=self.select_folder).pack(
+            side=tk.LEFT
+        )
+
         self.entry.focus_set()
+
         btn_frame = tk.Frame(self)
         btn_frame.pack(pady=8)
         tk.Button(
@@ -39,6 +50,12 @@ class AddDialog(tk.Toplevel):
 
     def select_file(self):
         path = filedialog.askopenfilename(title="Select file to add")
+        if path:
+            self.entry.delete(0, tk.END)
+            self.entry.insert(0, path)
+
+    def select_folder(self):
+        path = filedialog.askdirectory(title="Select folder to add")
         if path:
             self.entry.delete(0, tk.END)
             self.entry.insert(0, path)
@@ -130,8 +147,8 @@ class SimpleContextManager(tk.Tk):
         help_text = (
             "Simple Context Manager Help:\n\n"
             "- On the Welcome screen, you can load, edit, or create contexts.\n"
-            "- A context is a list of URLs or file paths to be managed.\n"
-            "- In the Create or Edit screens, add URLs or files using the '+' button.\n"
+            "- A context is a list of URLs, file paths, or folder paths to be managed.\n"
+            "- In the Create or Edit screens, add items using the '+' button.\n"
             "- Remove items with the '–' button.\n"
             "- Save your context to a JSON file for later use.\n"
             "- Loaded contexts can be opened or edited as needed.\n"
@@ -262,8 +279,8 @@ class SimpleContextManager(tk.Tk):
 
     def show_create_info(self):
         info_text = (
-            "In the Create Context screen, you can add URLs or file paths to build your context.\n\n"
-            "- Use the '+' button to add a URL or select a file.\n"
+            "In the Create Context screen, you can add URLs, file paths, or folder paths.\n\n"
+            "- Use the '+' button to add items (Browse File / Browse Folder or paste).\n"
             "- Use the '–' button to remove selected items.\n"
             "- Once done, save your context for later use."
         )
@@ -428,14 +445,42 @@ class SimpleContextManager(tk.Tk):
         except Exception as e:
             messagebox.showerror("Error", f"Failed to load file:\n{e}")
 
+    # --- Opening logic (URLs, files, and folders, cross-platform) ---
+
+    @staticmethod
+    def _is_url(s: str) -> bool:
+        return s.lower().startswith(("http://", "https://", "file://"))
+
+    @staticmethod
+    def _open_target(target: str):
+        """Open URL/file/folder cross-platform. Raises on failure."""
+        if SimpleContextManager._is_url(target):
+            # Let the default browser / handler deal with URLs (http/https/file)
+            ok = webbrowser.open(target)
+            if not ok:
+                raise RuntimeError("No browser/handler could open the URL.")
+            return
+
+        # Expand ~ and environment vars for local paths
+        p = os.path.expandvars(os.path.expanduser(target))
+        if not os.path.exists(p):
+            raise FileNotFoundError(f"Path does not exist: {p}")
+
+        if sys.platform.startswith("darwin"):
+            subprocess.Popen(["open", p])
+        elif os.name == "nt":
+            os.startfile(p)  # type: ignore[attr-defined]
+        else:
+            subprocess.Popen(["xdg-open", p])
+
     def open_loaded_context(self):
         if not self.loaded_context:
-            messagebox.showinfo("Info", "No URLs or files loaded to open.")
+            messagebox.showinfo("Info", "No URLs or files/folders loaded to open.")
             return
         errors = []
         for item in self.loaded_context:
             try:
-                subprocess.run(["open", item])
+                self._open_target(item)
             except Exception as e:
                 errors.append(f"{item}: {e}")
         if errors:
