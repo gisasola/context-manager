@@ -204,7 +204,7 @@ class SimpleContextManager(tk.Tk):
 
         tk.Button(
             self.load_frame,
-            text="Add missing",
+            text="Load from file",
             width=14,
             command=self.browse_and_load_context,
         ).pack(pady=2)
@@ -229,6 +229,14 @@ class SimpleContextManager(tk.Tk):
 
         title_frame = tk.Frame(self.create_frame)
         title_frame.pack(anchor="w", pady=(0, 6), padx=12, fill=tk.X)
+
+        tk.Button(
+            title_frame,
+            text="⬅️",
+            font=("Arial", 16),
+            command=self.show_welcome,
+            relief="flat",
+        ).pack(side=tk.LEFT, padx=(0, 10))
 
         title = tk.Label(title_frame, text="Create Context", font=("Arial", 18, "bold"))
         title.pack(side=tk.LEFT)
@@ -273,10 +281,6 @@ class SimpleContextManager(tk.Tk):
             nav_frame, text="Save Context", width=16, command=self.save_context
         ).pack(side=tk.LEFT, padx=(0, 14))
 
-        tk.Button(nav_frame, text="Back to Welcome", command=self.show_welcome).pack(
-            pady=12
-        )
-
     def show_create_info(self):
         info_text = (
             "In the Create Context screen, you can add URLs, file paths, or folder paths.\n\n"
@@ -296,10 +300,23 @@ class SimpleContextManager(tk.Tk):
         self.edit_frame = tk.Frame(self)
         self.edit_frame.pack(fill=tk.BOTH, expand=True, padx=8, pady=8)
 
+        title_frame = tk.Frame(self.edit_frame)
+        title_frame.pack(anchor="w", pady=(0, 6), padx=12, fill=tk.X)
+
+        tk.Button(
+            title_frame,
+            text="⬅️",
+            font=("Arial", 16),
+            command=self.show_welcome,
+            relief="flat",
+        ).pack(side=tk.LEFT, padx=(0, 10))
+
         title = tk.Label(
-            self.edit_frame, text="Edit Context", font=("Arial", 18, "bold")
+            title_frame,
+            text="Which content would you like to load?",
+            font=("Arial", 18, "bold"),
         )
-        title.pack(anchor="w", pady=(0, 6), padx=12)
+        title.pack(side=tk.LEFT)
 
         self.listbox = tk.Listbox(
             self.edit_frame, selectmode=tk.EXTENDED, font=("Arial", 13), height=18
@@ -334,10 +351,6 @@ class SimpleContextManager(tk.Tk):
         tk.Button(
             nav_frame, text="Save Changes", width=16, command=self.save_edited_context
         ).pack(side=tk.LEFT, padx=(0, 14))
-
-        tk.Button(nav_frame, text="Back to Welcome", command=self.show_welcome).pack(
-            pady=12
-        )
 
     # --- Shared methods ---
 
@@ -396,7 +409,7 @@ class SimpleContextManager(tk.Tk):
             files = [f for f in os.listdir(self.contexts_dir) if f.endswith(".json")]
             files.sort()
             for f in files:
-                self.context_listbox.insert(tk.END, f)
+                self.context_listbox.insert(tk.END, os.path.splitext(f)[0])
 
     def load_selected_and_open(self):
         if not hasattr(self, "context_listbox"):
@@ -405,7 +418,7 @@ class SimpleContextManager(tk.Tk):
         if not selection:
             messagebox.showinfo("Info", "No context selected.")
             return
-        filename = self.context_listbox.get(selection[0])
+        filename = self.context_listbox.get(selection[0]) + ".json"
         full_path = os.path.join(self.contexts_dir, filename)
         self.load_context_file(full_path)
         self.open_loaded_context()
@@ -417,7 +430,7 @@ class SimpleContextManager(tk.Tk):
         if not selection:
             messagebox.showinfo("Info", "No context selected.")
             return
-        filename = self.context_listbox.get(selection[0])
+        filename = self.context_listbox.get(selection[0]) + ".json"
         full_path = os.path.join(self.contexts_dir, filename)
         self.load_context_file(full_path, showMessage=False)
         self.show_edit_context()
